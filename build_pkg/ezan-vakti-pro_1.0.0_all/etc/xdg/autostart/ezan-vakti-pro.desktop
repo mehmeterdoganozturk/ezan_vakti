@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Ezan Vakti Pro
+GenericName=Ezan Vakti ve Namaz Takvimi
+Comment=Ubuntu GNOME için Modern Diyanet Ezan Vakti ve Geri Sayım Uygulaması
+Exec=/usr/bin/ezan-vakti-pro --hidden
+Icon=ezan-vakti-pro
+Terminal=false
+Categories=Utility;Clock;
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=1
+StartupNotify=false

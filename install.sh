@@ -5,6 +5,8 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_DIR="${HOME}/.local/share/ezan-vakti-pro"
 BIN_DIR="${HOME}/.local/bin"
 DESKTOP_DIR="${HOME}/.local/share/applications"
+AUTOSTART_DIR="${HOME}/.config/autostart"
+DBUS_DIR="${HOME}/.local/share/dbus-1/services"
 ICON_DIR_PNG="${HOME}/.local/share/icons/hicolor/256x256/apps"
 ICON_DIR_SVG="${HOME}/.local/share/icons/hicolor/scalable/apps"
 EXT_DIR="${HOME}/.local/share/gnome-shell/extensions/ezan-vakti-pro@erdogan.github.com"
@@ -16,6 +18,8 @@ echo "=========================================================="
 mkdir -p "${TARGET_DIR}"
 mkdir -p "${BIN_DIR}"
 mkdir -p "${DESKTOP_DIR}"
+mkdir -p "${AUTOSTART_DIR}"
+mkdir -p "${DBUS_DIR}"
 mkdir -p "${ICON_DIR_PNG}"
 mkdir -p "${ICON_DIR_SVG}"
 mkdir -p "${EXT_DIR}"
@@ -35,7 +39,7 @@ chmod +x "${BIN_DIR}/ezan-vakti-pro"
 cp "${REPO_DIR}/ezan_vakti_pro/assets/icon.png" "${ICON_DIR_PNG}/ezan-vakti-pro.png"
 cp "${REPO_DIR}/ezan_vakti_pro/assets/icon.svg" "${ICON_DIR_SVG}/ezan-vakti-pro.svg"
 
-# 4. Desktop Entry
+# 4. Desktop Entry (Uygulama Menüsü)
 cat << EOF > "${DESKTOP_DIR}/ezan-vakti-pro.desktop"
 [Desktop Entry]
 Name=Ezan Vakti Pro
@@ -51,6 +55,30 @@ StartupNotify=true
 StartupWMClass=com.github.erdogan.EzanVaktiPro
 EOF
 chmod +x "${DESKTOP_DIR}/ezan-vakti-pro.desktop"
+
+# 4b. Autostart Desktop Entry (Oturum Açılışında Otomatik Başlama)
+cat << EOF > "${AUTOSTART_DIR}/ezan-vakti-pro.desktop"
+[Desktop Entry]
+Type=Application
+Name=Ezan Vakti Pro
+GenericName=Ezan Vakti ve Namaz Takvimi
+Comment=Ubuntu GNOME için Modern Diyanet Ezan Vakti ve Geri Sayım Uygulaması
+Exec=${BIN_DIR}/ezan-vakti-pro --hidden
+Icon=ezan-vakti-pro
+Terminal=false
+Categories=Utility;Clock;
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=1
+StartupNotify=false
+EOF
+chmod +x "${AUTOSTART_DIR}/ezan-vakti-pro.desktop"
+
+# 4c. D-Bus Service Auto-Activation (İhtiyaç Anında Otomatik Uyandırma)
+cat << EOF > "${DBUS_DIR}/com.github.erdogan.EzanVaktiPro.service"
+[D-BUS Service]
+Name=com.github.erdogan.EzanVaktiPro
+Exec=${BIN_DIR}/ezan-vakti-pro --hidden
+EOF
 
 # 5. GNOME Shell Extension
 cp -r "${REPO_DIR}/gnome_extension/ezan-vakti-pro@erdogan.github.com"/* "${EXT_DIR}/"

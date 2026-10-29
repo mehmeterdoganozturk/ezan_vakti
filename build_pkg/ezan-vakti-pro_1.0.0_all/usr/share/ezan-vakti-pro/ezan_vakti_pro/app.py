@@ -6,7 +6,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
-from gi.repository import Gtk, Adw, Gdk, GLib
+from gi.repository import Gtk, Adw, Gdk, GLib, Gio
 from .storage import StorageManager
 from .diyanet_client import DiyanetClient
 from .sound_player import SoundPlayer
@@ -20,9 +20,31 @@ APP_ID = "com.github.erdogan.EzanVaktiPro"
 
 class EzanApp(Adw.Application):
     def __init__(self):
-        super().__init__(application_id=APP_ID)
+        super().__init__(
+            application_id=APP_ID,
+            flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE
+        )
         self.window = None
         self._held = False
+
+    def do_command_line(self, command_line):
+        args = command_line.get_arguments()
+        is_hidden = "--hidden" in args or "--background" in args
+
+        if not self._held:
+            self.hold()
+            self._held = True
+
+        if not self.window:
+            self.window = EzanMainWindow(self)
+
+        if not is_hidden:
+            self.window.set_visible(True)
+            self.window.present()
+        else:
+            self.window.set_visible(False)
+
+        return 0
 
     def do_activate(self):
         if not self._held:

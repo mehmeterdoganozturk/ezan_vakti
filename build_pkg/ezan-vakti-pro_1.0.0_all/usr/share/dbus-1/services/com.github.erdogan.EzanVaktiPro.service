@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=com.github.erdogan.EzanVaktiPro
+Exec=/usr/bin/ezan-vakti-pro --hidden

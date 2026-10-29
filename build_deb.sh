@@ -15,6 +15,8 @@ rm -rf "${REPO_DIR}/build_pkg"
 mkdir -p "${BUILD_ROOT}/DEBIAN"
 mkdir -p "${BUILD_ROOT}/usr/bin"
 mkdir -p "${BUILD_ROOT}/usr/share/applications"
+mkdir -p "${BUILD_ROOT}/etc/xdg/autostart"
+mkdir -p "${BUILD_ROOT}/usr/share/dbus-1/services"
 mkdir -p "${BUILD_ROOT}/usr/share/icons/hicolor/256x256/apps"
 mkdir -p "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps"
 mkdir -p "${BUILD_ROOT}/usr/share/ezan-vakti-pro"
@@ -61,8 +63,31 @@ chmod 755 "${BUILD_ROOT}/usr/bin/ezan-vakti-pro"
 cp "${REPO_DIR}/main.py" "${BUILD_ROOT}/usr/share/ezan-vakti-pro/"
 cp -r "${REPO_DIR}/ezan_vakti_pro" "${BUILD_ROOT}/usr/share/ezan-vakti-pro/"
 
-# 5. Desktop File
+# 5. Desktop File (Menü)
 cp "${REPO_DIR}/ezan-vakti-pro.desktop" "${BUILD_ROOT}/usr/share/applications/"
+
+# 5b. Autostart Desktop Entry (Sistem Açılışında Otomatik Başlama)
+cat << 'EOF' > "${BUILD_ROOT}/etc/xdg/autostart/ezan-vakti-pro.desktop"
+[Desktop Entry]
+Type=Application
+Name=Ezan Vakti Pro
+GenericName=Ezan Vakti ve Namaz Takvimi
+Comment=Ubuntu GNOME için Modern Diyanet Ezan Vakti ve Geri Sayım Uygulaması
+Exec=/usr/bin/ezan-vakti-pro --hidden
+Icon=ezan-vakti-pro
+Terminal=false
+Categories=Utility;Clock;
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=1
+StartupNotify=false
+EOF
+
+# 5c. D-Bus Service Auto-Activation (İhtiyaç Anında Otomatik Başlama)
+cat << 'EOF' > "${BUILD_ROOT}/usr/share/dbus-1/services/com.github.erdogan.EzanVaktiPro.service"
+[D-BUS Service]
+Name=com.github.erdogan.EzanVaktiPro
+Exec=/usr/bin/ezan-vakti-pro --hidden
+EOF
 
 # 6. Icons
 cp "${REPO_DIR}/ezan_vakti_pro/assets/icon.png" "${BUILD_ROOT}/usr/share/icons/hicolor/256x256/apps/ezan-vakti-pro.png"
