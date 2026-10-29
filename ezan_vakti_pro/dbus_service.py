@@ -123,7 +123,11 @@ class DBusService:
 
         elif method_name == "SetPanelPosition":
             pos = parameters[0]
-            if pos in ("left", "center", "right"):
+            if hasattr(pos, "unpack"):
+                pos = pos.unpack()
+            while isinstance(pos, (tuple, list)) and len(pos) > 0:
+                pos = pos[0]
+            if isinstance(pos, str) and pos in ("left", "center", "right"):
                 self.storage.config["panel_position"] = pos
                 self.storage.save_config()
                 self._emit_position_changed(pos)
@@ -196,7 +200,28 @@ class DBusService:
     def _on_tick(self, status):
         self.broadcast_status()
 
+    def _sync_top_bar_organizer(self, pos: str):
+        try:
+            import subprocess
+            roles = ["ezan-vakti", "ezan-vakti-pro"]
+            for b in ["left", "center", "right"]:
+                key = f"/org/gnome/shell/extensions/top-bar-organizer/{b}-box-order"
+                try:
+                    raw = subprocess.check_output(["dconf", "read", key], stderr=subprocess.DEVNULL).decode().strip()
+                except Exception:
+                    continue
+                arr = eval(raw) if raw else []
+                arr = [x for x in arr if x not in roles]
+                if b == pos:
+                    arr.insert(0, "ezan-vakti")
+                    arr.insert(1, "ezan-vakti-pro")
+                val = str(arr).replace('"', "'")
+                subprocess.check_call(["dconf", "write", key, val], stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+
     def _emit_position_changed(self, position: str):
+        self._sync_top_bar_organizer(position)
         if self.connection and self.registration_id > 0:
             try:
                 self.connection.emit_signal(

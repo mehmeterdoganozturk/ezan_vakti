@@ -145,17 +145,17 @@ class EzanIndicator extends PanelMenu.Button {
         // Submenu: Panel Yerleşimi (Sağ / Orta / Sol)
         this._posSubmenu = new PopupMenu.PopupSubMenuMenuItem('📍 Panel Konumu (Sağ / Orta / Sol)');
         
-        this._posRightItem = new PopupMenu.PopupMenuItem('➡️ Sağ Taraf (Right)');
-        this._posRightItem.connect('activate', () => this._ext.requestPosition('right'));
-        this._posSubmenu.menu.addMenuItem(this._posRightItem);
+        this._posLeftItem = new PopupMenu.PopupMenuItem('⬅️ Sol Taraf (Left)');
+        this._posLeftItem.connect('activate', () => this._ext.requestPosition('left'));
+        this._posSubmenu.menu.addMenuItem(this._posLeftItem);
 
         this._posCenterItem = new PopupMenu.PopupMenuItem('⏸️ Orta Kısım (Center)');
         this._posCenterItem.connect('activate', () => this._ext.requestPosition('center'));
         this._posSubmenu.menu.addMenuItem(this._posCenterItem);
 
-        this._posLeftItem = new PopupMenu.PopupMenuItem('⬅️ Sol Taraf (Left)');
-        this._posLeftItem.connect('activate', () => this._ext.requestPosition('left'));
-        this._posSubmenu.menu.addMenuItem(this._posLeftItem);
+        this._posRightItem = new PopupMenu.PopupMenuItem('➡️ Sağ Taraf (Right)');
+        this._posRightItem.connect('activate', () => this._ext.requestPosition('right'));
+        this._posSubmenu.menu.addMenuItem(this._posRightItem);
 
         this.menu.addMenuItem(this._posSubmenu);
 
@@ -186,9 +186,15 @@ class EzanIndicator extends PanelMenu.Button {
     }
 
     updatePositionCheckmarks(pos) {
-        if (this._posRightItem) this._posRightItem.setOrnament(pos === 'right' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
-        if (this._posCenterItem) this._posCenterItem.setOrnament(pos === 'center' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
-        if (this._posLeftItem) this._posLeftItem.setOrnament(pos === 'left' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+        if (this._posLeftItem) {
+            this._posLeftItem.setOrnament(pos === 'left' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+        }
+        if (this._posCenterItem) {
+            this._posCenterItem.setOrnament(pos === 'center' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+        }
+        if (this._posRightItem) {
+            this._posRightItem.setOrnament(pos === 'right' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+        }
     }
 
     updateStatus(nextName, nextTime, remSec, countdownStr, curName, distName, pos, soundEn, isVis) {
@@ -240,13 +246,10 @@ export default class EzanVaktiExtension extends Extension {
         this._currentPosition = this._readInitialPosition();
 
         this._indicator = new EzanIndicator(this);
-        Main.panel.addToStatusArea('ezan-vakti-pro', this._indicator, 1, this._currentPosition);
+        Main.panel.addToStatusArea('ezan-vakti', this._indicator, 0, this._currentPosition);
         
         // Ensure initial position is visually applied and checked
         this.moveToBox(this._currentPosition);
-        if (this._indicator) {
-            this._indicator.updatePositionCheckmarks(this._currentPosition);
-        }
 
         this._initDBus();
     }
@@ -291,7 +294,7 @@ export default class EzanVaktiExtension extends Extension {
         } catch (e) {
             // Ignore
         }
-        return 'right';
+        return 'left';
     }
 
     _savePositionToConfig(pos) {
@@ -313,6 +316,34 @@ export default class EzanVaktiExtension extends Extension {
         }
     }
 
+    _syncTopBarOrganizer(pos) {
+        try {
+            const pyCode = `
+import subprocess
+try:
+    roles = ['ezan-vakti', 'ezan-vakti-pro']
+    for b in ['left', 'center', 'right']:
+        key = f'/org/gnome/shell/extensions/top-bar-organizer/{b}-box-order'
+        try:
+            raw = subprocess.check_output(['dconf', 'read', key], stderr=subprocess.DEVNULL).decode().strip()
+        except Exception:
+            continue
+        arr = eval(raw) if raw else []
+        arr = [x for x in arr if x not in roles]
+        if b == '${pos}':
+            arr.insert(0, 'ezan-vakti')
+            arr.insert(1, 'ezan-vakti-pro')
+        val = str(arr).replace('\"', '\'')
+        subprocess.check_call(['dconf', 'write', key, val], stderr=subprocess.DEVNULL)
+except Exception:
+    pass
+`;
+            GLib.spawn_command_line_async(`python3 -c "${pyCode.replace(/\n/g, ' ')}"`);
+        } catch (e) {
+            console.error('Error syncing top-bar-organizer:', e);
+        }
+    }
+
     moveToBox(boxName) {
         if (!this._indicator || !this._indicator.container) return;
         if (!['left', 'center', 'right'].includes(boxName)) return;
@@ -322,43 +353,50 @@ export default class EzanVaktiExtension extends Extension {
             center: Main.panel._centerBox,
             right: Main.panel._rightBox,
         };
-        const targetBox = boxes[boxName] || Main.panel._rightBox;
+        const targetBox = boxes[boxName] || Main.panel._leftBox;
         const container = this._indicator.container;
         const parent = container.get_parent();
 
-        if (parent === targetBox && this._currentPosition === boxName) {
-            return;
+        if (parent !== targetBox) {
+            if (parent) {
+                parent.remove_child(container);
+            }
+            const targetIndex = (boxName === 'left') ? 0 : ((boxName === 'right') ? 0 : -1);
+            if (targetIndex === -1) {
+                targetBox.add_child(container);
+            } else {
+                targetBox.insert_child_at_index(container, Math.min(targetIndex, targetBox.get_n_children()));
+            }
+            this._currentPosition = boxName;
         }
-
-        if (parent) {
-            parent.remove_child(container);
-        }
-
-        // Determine position index in target box
-        const targetIndex = (boxName === 'right') ? 0 : 1;
-        targetBox.insert_child_at_index(container, Math.min(targetIndex, targetBox.get_n_children()));
-        this._currentPosition = boxName;
 
         if (this._indicator) {
             this._indicator.updatePositionCheckmarks(boxName);
         }
+
+        this._syncTopBarOrganizer(boxName);
     }
 
     requestPosition(newBox) {
         if (!['left', 'center', 'right'].includes(newBox)) return;
 
-        // 1. Move immediately in the panel
+        // 1. Move immediately in the panel and update checkmarks
         this.moveToBox(newBox);
 
         // 2. Persist directly to config file
         this._savePositionToConfig(newBox);
 
         // 3. Notify backend over D-Bus with standard string argument
-        this.callMethod('SetPanelPosition', newBox);
-
-        // 4. Update checkmarks
-        if (this._indicator) {
-            this._indicator.updatePositionCheckmarks(newBox);
+        if (this._proxy) {
+            try {
+                this._proxy.SetPanelPositionRemote(newBox, (result, error) => {
+                    if (error) {
+                        console.error('EzanVakti error in SetPanelPositionRemote:', error);
+                    }
+                });
+            } catch (e) {
+                console.error('EzanVakti exception in SetPanelPositionRemote:', e);
+            }
         }
     }
 
@@ -443,27 +481,22 @@ export default class EzanVaktiExtension extends Extension {
         try {
             this._proxy[`${methodName}Remote`](...args, (result, error) => {
                 if (error) {
-                    console.error(`EzanVaktiPro error in ${methodName}:`, error);
+                    console.error(`EzanVakti error in ${methodName}:`, error);
                 }
             });
         } catch (e) {
-            console.error(`EzanVaktiPro exception in ${methodName}:`, e);
+            console.error(`EzanVakti exception in ${methodName}:`, e);
         }
     }
 
     showOrLaunchApp() {
         if (this._proxy) {
-            this.callMethod('ShowWindow');
+            this._proxy.ShowWindowRemote(() => {});
         } else {
             try {
-                const appInfo = Gio.AppInfo.create_from_commandline(
-                    'ezan-vakti-pro',
-                    'Ezan Vakti Pro',
-                    Gio.AppInfoCreateFlags.NONE
-                );
-                appInfo.launch([], null);
+                Gio.AppInfo.create_from_commandline('ezan-vakti-pro', 'Ezan Vakti Pro', 0).launch([], null);
             } catch (e) {
-                GLib.spawn_command_line_async('ezan-vakti-pro');
+                GLib.spawn_command_line_async('python3 /home/erdogan/Projects/ezan_vakti/main.py');
             }
         }
     }

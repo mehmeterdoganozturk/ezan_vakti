@@ -1,0 +1,16 @@
+{
+  "name": "Ezan Vakti Pro",
+  "description": "Ubuntu GNOME i\u00e7in Modern Diyanet Ezan Vakti ve Geri Say\u0131m Uzant\u0131s\u0131",
+  "uuid": "ezan-vakti@erdogan.github.com",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50",
+    "51"
+  ],
+  "url": "https://github.com/erdogan/ezan-vakti-pro",
+  "version": 1
+}
