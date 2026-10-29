@@ -63,15 +63,6 @@ const EzanIface = `
 
 const EzanProxy = Gio.DBusProxy.makeProxyWrapper(EzanIface);
 
-const PRAYER_ICONS = {
-    'imsak': '🌙',
-    'gunes': '🌅',
-    'ogle': '☀️',
-    'ikindi': '🌤️',
-    'aksam': '🌇',
-    'yatsi': '🌌'
-};
-
 const EzanIndicator = GObject.registerClass(
 class EzanIndicator extends PanelMenu.Button {
     _init(extension) {
@@ -151,7 +142,7 @@ class EzanIndicator extends PanelMenu.Button {
 
         this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
-        // Submenu: Panel Yerleşimi (Sağ / Orta / Sol) - KULLANICI İSTEĞİ!
+        // Submenu: Panel Yerleşimi (Sağ / Orta / Sol)
         this._posSubmenu = new PopupMenu.PopupSubMenuMenuItem('📍 Panel Konumu (Sağ / Orta / Sol)');
         
         this._posRightItem = new PopupMenu.PopupMenuItem('➡️ Sağ Taraf (Right)');
@@ -194,6 +185,12 @@ class EzanIndicator extends PanelMenu.Button {
         this.menu.addMenuItem(this._quitItem);
     }
 
+    updatePositionCheckmarks(pos) {
+        if (this._posRightItem) this._posRightItem.setOrnament(pos === 'right' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+        if (this._posCenterItem) this._posCenterItem.setOrnament(pos === 'center' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+        if (this._posLeftItem) this._posLeftItem.setOrnament(pos === 'left' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+    }
+
     updateStatus(nextName, nextTime, remSec, countdownStr, curName, distName, pos, soundEn, isVis) {
         // Top bar text
         this._iconLabel.set_text('🕌');
@@ -210,9 +207,7 @@ class EzanIndicator extends PanelMenu.Button {
         this._windowItem.label.set_text(isVis ? '🙈 Pencereyi Gizle' : '🪟 Pencereyi Göster');
 
         // Check active position item
-        this._posRightItem.setOrnament(pos === 'right' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
-        this._posCenterItem.setOrnament(pos === 'center' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
-        this._posLeftItem.setOrnament(pos === 'left' ? PopupMenu.Ornament.CHECK : PopupMenu.Ornament.NONE);
+        this.updatePositionCheckmarks(pos);
     }
 
     updateTimes(imsak, gunes, ogle, ikindi, aksam, yatsi, qiblaTime, qiblaAngle, hijri) {
@@ -244,7 +239,15 @@ export default class EzanVaktiExtension extends Extension {
         this._pollTimerId = 0;
         this._currentPosition = this._readInitialPosition();
 
-        this._mountIndicator(this._currentPosition);
+        this._indicator = new EzanIndicator(this);
+        Main.panel.addToStatusArea('ezan-vakti-pro', this._indicator, 1, this._currentPosition);
+        
+        // Ensure initial position is visually applied and checked
+        this.moveToBox(this._currentPosition);
+        if (this._indicator) {
+            this._indicator.updatePositionCheckmarks(this._currentPosition);
+        }
+
         this._initDBus();
     }
 
@@ -291,22 +294,71 @@ export default class EzanVaktiExtension extends Extension {
         return 'right';
     }
 
-    _mountIndicator(boxName) {
-        if (this._indicator) {
-            this._indicator.destroy();
-            this._indicator = null;
+    _savePositionToConfig(pos) {
+        try {
+            const configPath = GLib.build_filenamev([GLib.get_home_dir(), '.config', 'ezan-vakti-pro', 'config.json']);
+            let cfg = {};
+            if (GLib.file_test(configPath, GLib.FileTest.EXISTS)) {
+                const [ok, contents] = GLib.file_get_contents(configPath);
+                if (ok) {
+                    const decoder = new TextDecoder('utf-8');
+                    cfg = JSON.parse(decoder.decode(contents));
+                }
+            }
+            cfg.panel_position = pos;
+            const encoder = new TextEncoder();
+            GLib.file_set_contents(configPath, encoder.encode(JSON.stringify(cfg, null, 2)));
+        } catch (e) {
+            console.error('Error saving panel_position to config.json:', e);
+        }
+    }
+
+    moveToBox(boxName) {
+        if (!this._indicator || !this._indicator.container) return;
+        if (!['left', 'center', 'right'].includes(boxName)) return;
+
+        const boxes = {
+            left: Main.panel._leftBox,
+            center: Main.panel._centerBox,
+            right: Main.panel._rightBox,
+        };
+        const targetBox = boxes[boxName] || Main.panel._rightBox;
+        const container = this._indicator.container;
+        const parent = container.get_parent();
+
+        if (parent === targetBox && this._currentPosition === boxName) {
+            return;
         }
 
+        if (parent) {
+            parent.remove_child(container);
+        }
+
+        // Determine position index in target box
+        const targetIndex = (boxName === 'right') ? 0 : 1;
+        targetBox.insert_child_at_index(container, Math.min(targetIndex, targetBox.get_n_children()));
         this._currentPosition = boxName;
-        this._indicator = new EzanIndicator(this);
-        Main.panel.addToStatusArea('ezan-vakti-pro', this._indicator, 1, boxName);
+
+        if (this._indicator) {
+            this._indicator.updatePositionCheckmarks(boxName);
+        }
     }
 
     requestPosition(newBox) {
-        if (['left', 'center', 'right'].includes(newBox)) {
-            this._mountIndicator(newBox);
-            this.callMethod('SetPanelPosition', new GLib.Variant('(s)', [newBox]));
-            this._fetchTimesAndStatus();
+        if (!['left', 'center', 'right'].includes(newBox)) return;
+
+        // 1. Move immediately in the panel
+        this.moveToBox(newBox);
+
+        // 2. Persist directly to config file
+        this._savePositionToConfig(newBox);
+
+        // 3. Notify backend over D-Bus with standard string argument
+        this.callMethod('SetPanelPosition', newBox);
+
+        // 4. Update checkmarks
+        if (this._indicator) {
+            this._indicator.updatePositionCheckmarks(newBox);
         }
     }
 
@@ -341,7 +393,7 @@ export default class EzanVaktiExtension extends Extension {
         // StatusChanged signal
         this._signalId = this._proxy.connectSignal('StatusChanged', (proxy, senderName, [nextName, nextTime, remSec, countdownStr, curName, distName, pos, soundEn, isVis]) => {
             if (pos && pos !== this._currentPosition) {
-                this._mountIndicator(pos);
+                this.moveToBox(pos);
             }
             if (this._indicator) {
                 this._indicator.updateStatus(nextName, nextTime, remSec, countdownStr, curName, distName, pos, soundEn, isVis);
@@ -351,8 +403,7 @@ export default class EzanVaktiExtension extends Extension {
         // PanelPositionChanged signal
         this._posSignalId = this._proxy.connectSignal('PanelPositionChanged', (proxy, senderName, [newPos]) => {
             if (newPos && newPos !== this._currentPosition) {
-                this._mountIndicator(newPos);
-                this._fetchTimesAndStatus();
+                this.moveToBox(newPos);
             }
         });
 
@@ -370,7 +421,7 @@ export default class EzanVaktiExtension extends Extension {
             }
             const [nextName, nextTime, remSec, countdownStr, curName, distName, pos, soundEn, isVis] = result;
             if (pos && pos !== this._currentPosition) {
-                this._mountIndicator(pos);
+                this.moveToBox(pos);
             }
             if (this._indicator) {
                 this._indicator.updateStatus(nextName, nextTime, remSec, countdownStr, curName, distName, pos, soundEn, isVis);
@@ -387,16 +438,16 @@ export default class EzanVaktiExtension extends Extension {
         });
     }
 
-    callMethod(methodName, param = null) {
+    callMethod(methodName, ...args) {
         if (!this._proxy) return;
         try {
-            if (param) {
-                this._proxy[`${methodName}Remote`](param, () => {});
-            } else {
-                this._proxy[`${methodName}Remote`](() => {});
-            }
+            this._proxy[`${methodName}Remote`](...args, (result, error) => {
+                if (error) {
+                    console.error(`EzanVaktiPro error in ${methodName}:`, error);
+                }
+            });
         } catch (e) {
-            console.error(`EzanVaktiPro error calling ${methodName}:`, e);
+            console.error(`EzanVaktiPro exception in ${methodName}:`, e);
         }
     }
 
