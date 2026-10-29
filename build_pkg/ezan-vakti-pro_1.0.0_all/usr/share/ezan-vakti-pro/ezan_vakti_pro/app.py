@@ -47,7 +47,7 @@ class EzanMainWindow(Adw.ApplicationWindow):
         self.dbus_service = DBusService(app, self, self.engine, self.storage)
 
         self.set_title("Ezan Vakti Pro")
-        self.set_default_size(440, 680)
+        self.set_default_size(420, 580)
         self.add_css_class("ezan-window")
 
         # Load custom CSS
@@ -133,14 +133,14 @@ class EzanMainWindow(Adw.ApplicationWindow):
 
         main_box.append(header)
 
-        # Scroller container
+        # Scroller container (Never show scrollbars, content fits perfectly)
         scroller = Gtk.ScrolledWindow()
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.NEVER)
         scroller.set_vexpand(True)
         main_box.append(scroller)
 
-        # Content box (matches user's screenshot)
-        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        # Content box (matches user's screenshot with perfect zero-scroll fit)
+        content_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         content_box.add_css_class("ezan-main-container")
         content_box.set_halign(Gtk.Align.CENTER)
         scroller.set_child(content_box)
@@ -148,7 +148,7 @@ class EzanMainWindow(Adw.ApplicationWindow):
         # -------------------------------------------------------------
         # A. Header Location & Method Title
         # -------------------------------------------------------------
-        loc_header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        loc_header = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
         loc_header.set_halign(Gtk.Align.CENTER)
 
         self.lbl_main_location = Gtk.Label(label=self.storage.config.get("display_name", "Gölbaşı"))
@@ -163,7 +163,7 @@ class EzanMainWindow(Adw.ApplicationWindow):
         # -------------------------------------------------------------
         # B. Status Caption (Vaktin Çıkmasına)
         # -------------------------------------------------------------
-        status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         status_box.set_halign(Gtk.Align.CENTER)
         self.lbl_status_caption = Gtk.Label(label="Vaktin Çıkmasına")
         self.lbl_status_caption.add_css_class("status-caption")
@@ -181,7 +181,7 @@ class EzanMainWindow(Adw.ApplicationWindow):
         # -------------------------------------------------------------
         # D. Date Pill Badge (Miladi & Hicri)
         # -------------------------------------------------------------
-        date_pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        date_pill = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         date_pill.add_css_class("date-pill-box")
         date_pill.set_halign(Gtk.Align.CENTER)
 
@@ -194,8 +194,8 @@ class EzanMainWindow(Adw.ApplicationWindow):
         # E. 6 Prayer Cards Grid (2 Columns x 3 Rows)
         # -------------------------------------------------------------
         self.cards_grid = Gtk.Grid()
-        self.cards_grid.set_column_spacing(14)
-        self.cards_grid.set_row_spacing(12)
+        self.cards_grid.set_column_spacing(12)
+        self.cards_grid.set_row_spacing(8)
         self.cards_grid.set_halign(Gtk.Align.CENTER)
         content_box.append(self.cards_grid)
 

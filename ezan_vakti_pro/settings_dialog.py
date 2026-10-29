@@ -9,7 +9,7 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.set_transient_for(parent_window)
         self.set_modal(True)
         self.set_title("Ezan Vakti Pro Ayarları")
-        self.set_default_size(540, 620)
+        self.set_default_size(520, 520)
         self.set_search_enabled(False)
 
         self.storage = storage_manager
@@ -18,20 +18,18 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.on_changed = on_settings_changed
 
         # =====================================================================
-        # SAYFA 1: UYARILAR VE BİLDİRİMLER (Görsel 1)
+        # SAYFA 1: VAKİT ÖNCESİ UYARILAR (Görsel 1 Üst Kısım)
         # =====================================================================
-        page_alerts = Adw.PreferencesPage()
-        page_alerts.set_title("Uyarılar")
-        page_alerts.set_icon_name("preferences-system-notifications-symbolic")
-        self.add(page_alerts)
+        page_pre = Adw.PreferencesPage()
+        page_pre.set_title("Vakit Öncesi")
+        page_pre.set_icon_name("alarm-symbolic")
+        self.add(page_pre)
 
-        # 1. Vakitlerden Önce Uyarılar Grubu
         grp_pre = Adw.PreferencesGroup()
         grp_pre.set_title("Vakitlerden Önce Uyarılar")
-        grp_pre.set_description("Vakit girmeden önce hazırlık bildirimi ve hafif melodi")
-        page_alerts.add(grp_pre)
+        grp_pre.set_description("Vakit girmeden önce erken hazırlık bildirimi ve hatırlatma sesi")
+        page_pre.add(grp_pre)
 
-        # Pre-warning minutes row
         self.spin_pre_min = Adw.SpinRow.new_with_range(5, 60, 5)
         self.spin_pre_min.set_title("Erken Uyarı Süresi (Dakika)")
         self.spin_pre_min.set_subtitle("Vakitten kaç dakika önce haber verilsin?")
@@ -57,11 +55,34 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.sw_pre_yatsi = self._create_switch_row("Yatsıdan Önce", "Melodi 1", "yatsi", is_pre=True)
         grp_pre.add(self.sw_pre_yatsi)
 
-        # 2. Vakit Zamanında Uyarılar Grubu
+        test_pre_row = Adw.ActionRow()
+        test_pre_row.set_title("Ön Uyarı Tonunu Test Et")
+        btn_pre_sound = Gtk.Button(label="Sesi Dinle")
+        btn_pre_sound.set_valign(Gtk.Align.CENTER)
+        btn_pre_sound.add_css_class("flat")
+        btn_pre_sound.connect("clicked", lambda b: self.sound.play_pre_warning())
+        test_pre_row.add_suffix(btn_pre_sound)
+        grp_pre.add(test_pre_row)
+
+        # =====================================================================
+        # SAYFA 2: VAKİT ZAMANINDA UYARILAR & EZAN (Görsel 1 Alt Kısım)
+        # =====================================================================
+        page_time = Adw.PreferencesPage()
+        page_time.set_title("Vakit Ezanları")
+        page_time.set_icon_name("audio-volume-high-symbolic")
+        self.add(page_time)
+
         grp_time = Adw.PreferencesGroup()
         grp_time.set_title("Vakit Zamanında Uyarılar")
-        grp_time.set_description("Vakit girdiğinde ezan sesi ve masaüstü uyarısı")
-        page_alerts.add(grp_time)
+        grp_time.set_description("Vakit girdiğinde ezan sesi ve masaüstü bildirimi")
+        page_time.add(grp_time)
+
+        self.sw_sound = Adw.SwitchRow()
+        self.sw_sound.set_title("Sesli Uyarılar Açık")
+        self.sw_sound.set_subtitle("Ezan sesleri ve bildirim melodileri çalsın")
+        self.sw_sound.set_active(self.storage.config.get("sound_enabled", True))
+        self.sw_sound.connect("notify::active", self._on_value_changed)
+        grp_time.add(self.sw_sound)
 
         self.sw_time_imsak = self._create_switch_row("Sabah Ezanı", "Esselatu Hayrun / Ezan", "imsak", is_pre=False)
         grp_time.add(self.sw_time_imsak)
@@ -81,45 +102,24 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.sw_time_yatsi = self._create_switch_row("Yatsı Ezanı", "Ezan ve Bildirim", "yatsi", is_pre=False)
         grp_time.add(self.sw_time_yatsi)
 
-        # 3. Ses Kontrolü
-        grp_sound = Adw.PreferencesGroup()
-        grp_sound.set_title("Ses Kontrolleri")
-        page_alerts.add(grp_sound)
-
-        self.sw_sound = Adw.SwitchRow()
-        self.sw_sound.set_title("Sesli Uyarılar Açık")
-        self.sw_sound.set_subtitle("Uyarı sesleri ve ezan bildirimleri çalsın")
-        self.sw_sound.set_active(self.storage.config.get("sound_enabled", True))
-        self.sw_sound.connect("notify::active", self._on_value_changed)
-        grp_sound.add(self.sw_sound)
-
-        test_row = Adw.ActionRow()
-        test_row.set_title("Uyarı Sesini Test Et")
-        test_row.set_subtitle("Ön uyarı ve ezan seslerini dinleyin")
-
-        btn_test_pre = Gtk.Button(label="Ön Uyarı Dinle")
-        btn_test_pre.set_valign(Gtk.Align.CENTER)
-        btn_test_pre.add_css_class("flat")
-        btn_test_pre.connect("clicked", lambda b: self.sound.play_pre_warning())
-        test_row.add_suffix(btn_test_pre)
-
-        btn_test_ezan = Gtk.Button(label="Ezan Sesi Dinle")
-        btn_test_ezan.set_valign(Gtk.Align.CENTER)
-        btn_test_ezan.add_css_class("suggested-action")
-        btn_test_ezan.connect("clicked", lambda b: self.sound.play_ezan())
-        test_row.add_suffix(btn_test_ezan)
-
-        grp_sound.add(test_row)
+        test_time_row = Adw.ActionRow()
+        test_time_row.set_title("Ezan Sesini Test Et")
+        btn_time_sound = Gtk.Button(label="Ezan Sesi Dinle")
+        btn_time_sound.set_valign(Gtk.Align.CENTER)
+        btn_time_sound.add_css_class("suggested-action")
+        btn_time_sound.connect("clicked", lambda b: self.sound.play_ezan())
+        test_time_row.add_suffix(btn_time_sound)
+        grp_time.add(test_time_row)
 
         # =====================================================================
-        # SAYFA 2: GENEL & GÖRÜNÜM & PANEL KONUMU (Görsel 2 + Kullanıcı İsteği)
+        # SAYFA 3: GÖRÜNÜM & PANEL KONUMU (Görsel 2 + Panel Yerleşimi)
         # =====================================================================
         page_general = Adw.PreferencesPage()
         page_general.set_title("Görünüm ve Panel")
         page_general.set_icon_name("preferences-desktop-display-symbolic")
         self.add(page_general)
 
-        # 1. Üst Panel Konumu (GNOME Extension) - KULLANICI İSTEĞİ!
+        # 1. Üst Panel Konumu (GNOME Extension)
         grp_panel = Adw.PreferencesGroup()
         grp_panel.set_title("Üst Panel (GNOME Extension) Konumu")
         grp_panel.set_description("Ezan Vakti göstergesinin GNOME üst barındaki yerleşimi")
@@ -222,7 +222,6 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.storage.config["panel_position"] = chosen
         self.storage.save_config()
 
-        # Notify via D-Bus service if parent has dbus_service
         parent = self.get_transient_for()
         if parent and hasattr(parent, "dbus_service") and parent.dbus_service:
             parent.dbus_service._emit_position_changed(chosen)
@@ -238,7 +237,6 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.storage.config["theme_mode"] = chosen
         self.storage.save_config()
 
-        # Apply Adw style manager
         style_mgr = Adw.StyleManager.get_default()
         if chosen == "dark":
             style_mgr.set_color_scheme(Adw.ColorScheme.FORCE_DARK)

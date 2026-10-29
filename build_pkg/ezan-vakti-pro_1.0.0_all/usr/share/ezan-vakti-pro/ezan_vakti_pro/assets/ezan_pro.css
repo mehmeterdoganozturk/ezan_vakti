@@ -19,26 +19,26 @@ headerbar.ezan-header {
 
 /* Main Container */
 .ezan-main-container {
-    padding: 18px 24px 20px 24px;
+    padding: 8px 18px 10px 18px;
 }
 
 /* Header City & Method */
 .location-title {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 800;
     color: #FFFFFF;
     letter-spacing: 0.3px;
 }
 
 .location-sub {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
     color: #94A3B8;
 }
 
 /* Status Label (Vaktin Çıkmasına) */
 .status-caption {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     color: #CBD5E1;
     letter-spacing: 0.5px;
@@ -46,9 +46,9 @@ headerbar.ezan-header {
 
 /* Giant Countdown Clock */
 .countdown-clock {
-    font-size: 54px;
+    font-size: 44px;
     font-weight: 900;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
     color: #FFFFFF;
     font-family: "Ubuntu", "Inter", "Cantarell", sans-serif;
     text-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
@@ -58,12 +58,12 @@ headerbar.ezan-header {
 .date-pill-box {
     background: rgba(255, 255, 255, 0.07);
     border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 20px;
-    padding: 6px 18px;
+    border-radius: 18px;
+    padding: 4px 14px;
 }
 
 .date-pill-text {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: #E2E8F0;
 }
@@ -72,10 +72,10 @@ headerbar.ezan-header {
 .prayer-card {
     background: #181A20;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 14px 18px;
-    min-width: 145px;
-    min-height: 90px;
+    border-radius: 14px;
+    padding: 8px 14px;
+    min-width: 140px;
+    min-height: 56px;
     transition: all 200ms ease;
 }
 
@@ -95,7 +95,7 @@ headerbar.ezan-header {
 }
 
 .prayer-title {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: #CBD5E1;
 }
@@ -105,7 +105,7 @@ headerbar.ezan-header {
 }
 
 .prayer-time {
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 800;
     color: #FFFFFF;
 }
@@ -115,7 +115,7 @@ headerbar.ezan-header {
 }
 
 .prayer-badge {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     color: #F59E0B;
 }
@@ -124,16 +124,16 @@ headerbar.ezan-header {
 .bottom-bar {
     background: rgba(255, 255, 255, 0.03);
     border-top: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 10px 16px;
+    padding: 6px 14px;
 }
 
 .qibla-badge {
     background: rgba(16, 185, 129, 0.12);
     border: 1px solid rgba(16, 185, 129, 0.3);
     color: #34D399;
-    border-radius: 14px;
-    padding: 4px 12px;
-    font-size: 12px;
+    border-radius: 12px;
+    padding: 3px 10px;
+    font-size: 11px;
     font-weight: 600;
 }
 
