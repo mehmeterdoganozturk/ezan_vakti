@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Ezan Vakti Pro
+GenericName=Ezan Vakti ve Namaz Takvimi
+Comment=Ubuntu GNOME için Modern Diyanet Ezan Vakti ve Geri Sayım Uygulaması
+Exec=ezan-vakti-pro %U
+Icon=ezan-vakti-pro
+Terminal=false
+Type=Application
+Categories=Utility;Clock;
+Keywords=ezan;vakti;namaz;diyanet;takvim;imsakiye;kible;saat;prayer;
+StartupNotify=true
+StartupWMClass=com.github.erdogan.EzanVaktiPro
